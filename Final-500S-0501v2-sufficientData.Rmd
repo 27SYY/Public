@@ -1,0 +1,382 @@
+---
+title: "Final"
+author: "Yang Shen"
+date: "4/18/2021"
+output: pdf_document
+---
+
+```{r}
+data <- read.csv("C:/Users/sheny/Downloads/TrainingDataFinal.csv")
+
+library(ggplot2)
+library(maps)
+
+# Plot for farm locations
+qplot(Longitude, Latitude, data = data, col = "b") + borders("state", size = 0.5)
+
+```
+
+```{r}
+#Plot for each varieties. Some of them have enough data while others don't
+ggplot(data, aes(x=Variety)) + geom_bar(stat="count") + labs(y = "Frequency of Each Variety")
+
+```
+
+
+```{r}
+sufficient_varieties <- c("V100", "V101", "V102", "V103", "V104", "V105", "V106", "V107", "V108", "V109", "V110", "V111", "V112", "V114", "V115", "V116", "V117", "V118", "V119", "V121", "V122", "V124", "V125", "V126", "V127", "V128", "V130", "V131", "V133", "V135", "V136", "V137", "V138", "V139", "V140", "V169", "V179", "V180", "V181", "V183", "V185", "V186", "V187", "V188", "V189", "V190", "V191", "V192", "V193", "V194", "V195", "V196", "V31", "V32", "V36", "V38", "V39", "V40", "V41", "V42", "V43", "V44", "V45", "V46", "V47", "V48", "V49", "V51", "V52", "V54", "V56", "V8", "V87", "V88", "V9", "V90", "V92", "V94", "V95", "V96", "V97", "V98", "V99")
+
+data_filtered_TF = data$Variety %in% sufficient_varieties
+#sum(data_filtered == TRUE)
+data_filtered = data[data_filtered_TF, ]
+data_filtered
+
+```
+
+
+```{r}
+
+# !!!! From now on data is replaced by data_filtered
+# 注意： 后续的 data 都被 data_filtered 替代了
+
+data = data_filtered
+
+
+```
+
+
+
+
+```{r}
+#Plot for each varieties. Some of them have enough data while others don't
+ggplot(data, aes(x=Variety)) + geom_bar(stat="count") + labs(y = "Frequency of Each Variety")
+
+```
+
+
+
+
+
+
+```{r}
+# hist for yield
+
+ggplot(data, aes(x=Variety_Yield)) + geom_histogram(bins = 30) + labs(x = "Variety Yield", y = "Yield Frequency")
+
+```
+
+
+```{r}
+
+mean(data$Variety_Yield)
+median(data$Variety_Yield)
+
+
+```
+
+
+
+
+```{r}
+
+# Since I believe that only variety with 10 more cases located at similar places can be called as having relationship, only use varieties that have 10 more cases.
+
+# Generally, a variety has more relationship with its latitude than with its longitude. 
+
+
+# select those varieties have at least 10 cases as varieties with sufficient data
+var_freq = var_freq[order(var_freq$Freq),]
+varieties_10 = var_freq[var_freq[, "Freq"] >= 10, ]
+#varieties_10
+
+# create sub dataset
+data_10 <- data[which(data$Variety %in% varieties_10$Var1),]
+
+# plot box plot
+ggplot(data_10,aes(Variety,Latitude))+geom_boxplot()
+ggplot(data_10,aes(Variety,Longitude))+geom_boxplot()
+
+
+ggplot(data_10[data_10$Variety == "V169", ],aes(Variety,Latitude)) + geom_boxplot(width=0.1) + ylim(40, 45)
+ggplot(data_10[data_10$Variety == "V169", ],aes(Variety,Longitude)) + geom_boxplot(width=0.1) + ylim(-100, -80)
+
+?ggplot
+
+
+
+# select small variance variety in lati and long
+library(dplyr)
+Lati_Variance <- group_by(data_10, Variety) %>% summarise(Lati_Variance=var(Latitude))
+Long_Variance <- group_by(data_10, Variety) %>% summarise(Long_Variance=var(Longitude))
+
+lati_thus = mean(Lati_Variance$Lati_Variance)
+long_thus = mean(Long_Variance$Long_Variance)
+
+# V77 has a strong location relationship!!!!!!!!
+
+Lati_Variance[Lati_Variance[, "Lati_Variance"] < lati_thus/3, ]
+Long_Variance[Long_Variance[, "Long_Variance"] < long_thus/3, ]
+
+```
+
+```{r}
+
+pairs(data[,c("Latitude", "Longitude", "Weather1", "Weather2", "Median_Temp")]) # scatter plot
+
+# Clearly location has a strong correlation with weather variables.
+
+```
+
+```{r}
+
+
+ggplot(data = data, mapping = aes(x = Weather1, y = Latitude)) + geom_point()
+ggplot(data = data, mapping = aes(x = Weather1, y = Longitude)) + geom_point()
+
+ggplot(data = data, mapping = aes(x = Weather2, y = Latitude)) + geom_point()
+ggplot(data = data, mapping = aes(x = Weather2, y = Longitude)) + geom_point()
+
+
+
+
+
+```
+
+```{r}
+
+w1 = c("422", "433")
+
+data_w1 = data[data$Weather1 %in% w1, ]
+
+qplot(Longitude, Latitude, data = data_w1, col = "b") + borders("state", size = 0.5)
+
+
+```
+
+
+
+
+
+
+```{r}
+
+# Location ~ variety
+
+location_set <- data[,(c("Latitude", "Longitude"))]
+
+km.out = kmeans(location_set,4,nstart=20)
+
+km.out$cluster
+
+plot(location_set, col=(km.out$cluster+1), main = "K-Means Clustering Results with K = 2", xlab="", ylab="", pch=20,cex=2)
+
+
+```
+
+```{r}
+
+# Location of the target farm
+
+target_farm_location = matrix(c(42.285296, -93.244612), ncol=2)
+
+qplot(target_farm_location[,2],target_farm_location[,1], col = "b") + borders("state", size = 0.5)
+
+?qplot
+
+
+```
+
+
+
+```{r}
+# Adding columns for whether use this factor
+
+data_with_label = data
+
+for (i in (2:length(data_with_label$Variety))) {
+  
+  for (j in (3:9)){
+    
+    # name_no = quote(string(j))
+    name_year = paste("200",j, sep = "")
+    name_temp = paste("Temp_",j, sep = "")
+    name_prec = paste("Prec_",j, sep = "")
+    name_rad = paste("Rad_",j, sep = "")
+    
+    if (data_with_label$GrowingSeason[i] == name_year){
+      data_with_label[i, name_temp] = 1
+      data_with_label[i, name_prec] = 1
+      data_with_label[i, name_rad] = 1
+    }
+    else{
+      data_with_label[i, name_temp] = 0
+      data_with_label[i, name_prec] = 0
+      data_with_label[i, name_rad] = 0
+    }
+    
+  }
+
+}
+
+data_with_label
+#write.csv(data_with_label,"D:/bbb.csv")
+
+```
+
+
+
+
+```{r}
+# Remove column data for not to use
+
+data_updated = data
+
+for (i in (2:length(data_updated$Variety))) {
+  
+  for (j in (3:9)){
+    
+    # name_no = quote(string(j))
+    name_year = paste("200",j, sep = "")
+    name_temp = paste("Temp_0",j, sep = "")
+    name_prec = paste("Prec_0",j, sep = "")
+    name_rad = paste("Rad_0",j, sep = "")
+    
+    if (data_updated$GrowingSeason[i] == name_year){
+      # Keep the data
+    }
+    else{
+      data_updated[i, name_temp] = 0
+      data_updated[i, name_prec] = 0
+      data_updated[i, name_rad] = 0
+    }
+    
+  }
+
+}
+
+data_updated
+#write.csv(data_updated,"D:/data_updated.csv")
+
+```
+
+
+```{r}
+
+# Linear Regression
+
+lm.fit <- lm(Variety_Yield ~ Price + Urban + US)
+summary(lm.fit)
+
+
+
+
+
+
+```
+
+
+
+
+```{r}
+sum(data["Variety"] == "V121")
+length(data[, 1])
+
+length(data)
+?rowSums
+data[1]
+length(data["Variety"] == "V121")
+```
+
+
+
+
+
+```{r}
+
+i = 6
+
+test = "3"
+
+test2 = paste("Temp_0",i, sep = "")
+
+datatemp[,test2]
+
+#datatemp[,"Temp_03"]
+
+?as.character
+datatemp$GrowingSeason[i]
+name_year = paste("200",i, sep = "")
+
+
+t = (datatemp$GrowingSeason[i] == name_year)
+t
+
+```
+
+
+
+
+
+
+
+
+```{r}
+
+farms = unique(data$Location)
+
+getLatLon<-function(farmindex, dataset){
+  lat = 0
+  lon = 0
+  for (i in 1:length(dataset)){
+    if (farmindex == dataset$Location[i]){
+      lat = dataset$Latitude[i]
+      lon = dataset$Longitude[i]
+      break
+    }
+  }
+return(c(lat, lon))}
+
+
+
+
+
+positions = data.frame(farms)
+positions$Latitude = NA
+positions$Longitude = NA
+  
+for (i in 1:length(positions)){
+  lat = NA
+  lon = NA
+  for (j in 1:length(data)){
+    if (positions$farms[i] == data$Location[j]){
+      positions$Latitude[i] = data$Latitude[j]
+      positions$Longitude[i] = data$Longitude[j]
+    }
+  }
+}
+
+
+a = getLatLon(2304, positions)
+a
+```
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
